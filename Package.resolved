@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Cxlsxwriter",
+        "repositoryURL": "/usr2/home/mac/vapor/Cxlsxwriter",
+        "state": {
+          "branch": null,
+          "revision": "81214b0e75b28b39deea8c90914242338c2c9dbf",
+          "version": "0.0.2"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
