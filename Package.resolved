@@ -3,11 +3,11 @@
     "pins": [
       {
         "package": "Cxlsxwriter",
-        "repositoryURL": "/usr2/home/mac/vapor/Cxlsxwriter",
+        "repositoryURL": "https://github.com/maclee99/Cxlsxwriter",
         "state": {
           "branch": null,
-          "revision": "81214b0e75b28b39deea8c90914242338c2c9dbf",
-          "version": "0.0.2"
+          "revision": "8b3248454ce13d06d4e7e0085f6950847c50d710",
+          "version": "0.0.1"
         }
       }
     ]
