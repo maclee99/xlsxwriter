@@ -5,7 +5,7 @@ final class xlsxwriterTests: XCTestCase {
     func testExample() {
         // Create a new workbook
         let wb = Workbook(name: "demo.xlsx")
-        // defer { wb.close() }
+        defer { wb.close() }
         
         // Add a format.
         let f = wb
@@ -17,6 +17,8 @@ final class xlsxwriterTests: XCTestCase {
         
         // Add a format.
         let f2 = wb.addFormat().center()
+
+        let f3 = wb.addFormat().background(color: .green).font(color: .white)
         
         // Add a worksheet.
         let ws = wb
@@ -28,6 +30,8 @@ final class xlsxwriterTests: XCTestCase {
             .write("Batch 2", "C1", format: f)
             .column("A:C", width: 30)
             .gridline(screen: false)
+
+        ws.merge(["Merged Range"], firstRow: 1, firstCol: 0, lastRow: 1, lastCol: 10, format: f3)
         
         // Create random data
         let data = (1...100).map {
@@ -36,7 +40,7 @@ final class xlsxwriterTests: XCTestCase {
         
         // Write data to add to plot on the chart.
         data.enumerated().forEach {
-            ws.write($0.element, row: $0.offset + 1, format: f2)
+            ws.write($0.element, row: $0.offset + 2, format: f2)
         }
         
         // Create a new Chart
