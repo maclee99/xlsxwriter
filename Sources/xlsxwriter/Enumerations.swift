@@ -131,6 +131,16 @@ public enum Color: UInt32 {
   case silver = 0xC0C0C0
   case white = 0xFFFFFF
   case yellow = 0xFFFF00
+  case fillGreen = 0xC8BAFB29
+  case fillOrange = 0xC8FFA500
+  case fillRed = 0xC8FF0000
+  case fillOrangeRed = 0xC8FF4500
+  case fillYellowGreen = 0xC89ACD32
+  case fillPaleGreen = 0xC898FB98
+  case fillWheat = 0xC8F5DEB3
+  case fillGray = 0xC8808080
+  case fillGold = 0xC8FFD700
+  case fillLightPink = 0xC8FDE9D9
 }
 
 /// Available chart types.

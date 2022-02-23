@@ -18,7 +18,7 @@ final class xlsxwriterTests: XCTestCase {
         // Add a format.
         let f2 = wb.addFormat().center()
 
-        let f3 = wb.addFormat().background(color: .green).font(color: .white)
+        let f3 = wb.addFormat().background(color: .fillGreen)   //.font(color: .white)
         
         // Add a worksheet.
         let ws = wb
