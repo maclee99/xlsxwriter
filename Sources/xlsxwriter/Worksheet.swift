@@ -224,6 +224,20 @@ public final class Worksheet {
         return self
     }
 
+    ///  allows cells to be merged together so that they act as a single area.
+    // void worksheet_freeze_panes	(	lxw_worksheet * 	worksheet,
+    // lxw_row_t 	row,
+    // lxw_col_t 	col 
+    // )	    
+    @discardableResult public func freeze(row: Int, col: Int = 0 ) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+        withUnsafeMutablePointer(to: &lxw_worksheet) { sheet in
+          worksheet_freeze_panes(sheet, r, c)
+        }
+        return self
+    }
+
 }
 
 private func makeCString(from str: String) -> UnsafeMutablePointer<CChar> {

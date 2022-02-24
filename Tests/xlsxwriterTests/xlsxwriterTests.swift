@@ -25,13 +25,13 @@ final class xlsxwriterTests: XCTestCase {
             .addWorksheet()
             .tab(color: .blue)
             .set_default(row_height: 25)
-            .write("Number", "A1", format: f)
-            .write("Batch 1", "B1", format: f)
-            .write("Batch 2", "C1", format: f)
-            .column("A:C", width: 30)
+            .write("Number", "A12", format: f)
+            .write("Batch 1", "B2", format: f)
+            .write("Batch 2", "C2", format: f)
+            .column("A:C", width: 50)
             .gridline(screen: false)
 
-        ws.merge(["Merged Range"], firstRow: 1, firstCol: 0, lastRow: 1, lastCol: 10, format: f3)
+        ws.merge(["Merged Range"], firstRow: 0, firstCol: 0, lastRow: 0, lastCol: 2, format: f3)
         
         // Create random data
         let data = (1...100).map {
@@ -42,6 +42,8 @@ final class xlsxwriterTests: XCTestCase {
         data.enumerated().forEach {
             ws.write($0.element, row: $0.offset + 2, format: f2)
         }
+
+        ws.freeze(row: 2, col: 1)
         
         // Create a new Chart
         let chart = wb
@@ -66,6 +68,7 @@ final class xlsxwriterTests: XCTestCase {
             .zoom(scale: 150)
             .activate()
             .set(chart: chart) // Insert the chart into the chartsheet.
+
     }
 
     static var allTests = [

@@ -1,3 +1,3 @@
 # xlsxwriter
 
-A description of this package.
+[original source](https://github.com/damuellen/xlsxwriter.swift)
