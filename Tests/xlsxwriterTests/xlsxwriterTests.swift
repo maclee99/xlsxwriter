@@ -6,6 +6,8 @@ final class xlsxwriterTests: XCTestCase {
         // Create a new workbook
         let wb = Workbook(name: "demo.xlsx")
         defer { wb.close() }
+
+        wb.properties(title: "title", subject: "subject", author: "Mac Lee")
         
         // Add a format.
         let f = wb
@@ -14,6 +16,7 @@ final class xlsxwriterTests: XCTestCase {
             .border(style: .thin)
             .align(horizontal: .center)
             .align(vertical: .center)
+            .background(color: .fillGold)
         
         // Add a format.
         let f2 = wb.addFormat().center()
@@ -24,14 +27,15 @@ final class xlsxwriterTests: XCTestCase {
         let ws = wb
             .addWorksheet()
             .tab(color: .blue)
-            .set_default(row_height: 25)
+            .set_default(row_height: 25.0)
             .write("Number", "A12", format: f)
             .write("Batch 1", "B2", format: f)
             .write("Batch 2", "C2", format: f)
-            .column("A:C", width: 50)
+            .column("A:A", width: 20.0)
+            .column("B:C", width: 50.0)
             .gridline(screen: false)
 
-        ws.merge(["Merged Range"], firstRow: 0, firstCol: 0, lastRow: 0, lastCol: 2, format: f3)
+        ws.merge("Merged Range", firstRow: 0, firstCol: 0, lastRow: 0, lastCol: 2, format: f3)
         
         // Create random data
         let data = (1...100).map {
@@ -44,6 +48,7 @@ final class xlsxwriterTests: XCTestCase {
         }
 
         ws.freeze(row: 2, col: 1)
+           .activate()
         
         // Create a new Chart
         let chart = wb
@@ -66,7 +71,7 @@ final class xlsxwriterTests: XCTestCase {
         wb.addChartsheet(name: "Second")
             .paper(type: .A3)
             .zoom(scale: 150)
-            .activate()
+            // .activate()
             .set(chart: chart) // Insert the chart into the chartsheet.
 
     }
