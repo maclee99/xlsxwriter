@@ -31,6 +31,7 @@ final class xlsxwriterTests: XCTestCase {
             .write("Number", "A12", format: f)
             .write("Batch 1", "B2", format: f)
             .write("Batch 2", "C2", format: f)
+            .write(.comment("comment"), Cell(stringLiteral: "C2"))
             .column("A:A", width: 20.0)
             .column("B:C", width: 50.0)
             .gridline(screen: false)

@@ -70,7 +70,7 @@ public final class Workbook {
     func validate(sheet_name: String) { let _ = sheet_name.withCString { workbook_validate_sheet_name(lxw_workbook, $0) } }
 
     /// Additionam func by Mac Lee
-    @discardableResult func properties(title: String? = nil, subject: String? = nil, 
+    @discardableResult public func properties(title: String? = nil, subject: String? = nil, 
       author: String? = nil, manager: String? = nil, company: String? = nil,
       category: String? = nil, keywords: String? = nil, comments: String? = nil,
       status: String? = nil) -> Workbook {
