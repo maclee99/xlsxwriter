@@ -113,6 +113,7 @@ public enum PaperType: UInt8 {
     case German_Std_Fanfold  // 8 1/2 x 12 in
     case German_Legal_Fanfold  // 8 1/2 x 13 in
 }
+
 /// Predefined values for common colors.
 public enum Color: UInt32 {
     case black = 0x1000000
@@ -130,6 +131,7 @@ public enum Color: UInt32 {
     case silver = 0xC0C0C0
     case white = 0xFFFFFF
     case yellow = 0xFFFF00
+    // added by mac
     case fillGreen = 0xC8BAFB29
     case fillOrange = 0xC8FFA500
     case fillRed = 0xC8FF0000
@@ -170,13 +172,39 @@ public enum Chart_type: UInt8 {
 }
 
 public enum Legend_position: UInt8 {
-  case none = 0
-  case right
-  case left
-  case top
-  case bottom
-  case top_right
-  case overlay_right
-  case overlay_left
-  case overlay_top_right
+    case none = 0
+    case right
+    case left
+    case top
+    case bottom
+    case top_right
+    case overlay_right
+    case overlay_left
+    case overlay_top_right
 }
+
+public enum TotalFunction: UInt8, ExpressibleByIntegerLiteral {
+    case none = 0
+    /** Use the average function as the table total. */
+    case average = 101
+    /** Use the count numbers function as the table total. */
+    case nums = 102
+    /** Use the count function as the table total. */
+    case count = 103
+    /** Use the max function as the table total. */
+    case max = 104
+    /** Use the min function as the table total. */
+    case min = 105
+    /** Use the standard deviation function as the table total. */
+    case std_dev = 107
+    /** Use the sum function as the table total. */
+    case sum = 109
+
+    public init(integerLiteral value: Int) {
+        if let function = TotalFunction(rawValue: UInt8(value)) {
+            self = function
+        } else {
+            self = .none
+        }
+    }
+  }

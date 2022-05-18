@@ -4,14 +4,17 @@
 //
 
 import Cxlsxwriter
+import Logging
 
 /// Struct to represent an Excel workbook.
 public final class Workbook {
 
     var lxw_workbook: UnsafeMutablePointer<lxw_workbook>
+    let logger = Logger(label: "Workbook")
 
     /// Create a new workbook object.
     public init(name: String) {
+        logger.info("init: \(name)")
         self.lxw_workbook = name.withCString { 
             workbook_new($0) 
         }
@@ -19,19 +22,21 @@ public final class Workbook {
 
     /// Close the Workbook object and write the XLSX file.
     public func close() {
+        logger.info("close...")
         let error = workbook_close(lxw_workbook)
         if error.rawValue != 0 { fatalError(String(cString: lxw_strerror(error))) }
     }
 
     /// Add a new worksheet to the Excel workbook.
     public func addWorksheet(name: String? = nil) -> Worksheet {
+        logger.info("addWorksheet: \(String(describing: name))")
         let worksheet: UnsafeMutablePointer<lxw_worksheet>
         if let name = name {
             worksheet = name.withCString { workbook_add_worksheet(lxw_workbook, $0) }
         } else {
             worksheet = workbook_add_worksheet(lxw_workbook, nil)
         }
-        return Worksheet(worksheet.pointee)
+        return Worksheet(worksheet)
     }
 
     /// Add a new chartsheet to a workbook.
@@ -42,8 +47,9 @@ public final class Workbook {
         } else {
             chartsheet = workbook_add_chartsheet(lxw_workbook, nil)
         }
-        return Chartsheet(chartsheet.pointee)
+        return Chartsheet(chartsheet)
     }
+
     /// Add a new format to the Excel workbook.
     public func addFormat() -> Format { 
         Format(workbook_add_format(lxw_workbook)) 
@@ -57,17 +63,23 @@ public final class Workbook {
     /// Get a worksheet object from its name.
     public subscript(worksheet name: String) -> Worksheet? {
         guard let ws = name.withCString({ s in workbook_get_worksheet_by_name(lxw_workbook, s) }) else { return nil }
-        return Worksheet(ws.pointee)
+        return Worksheet(ws)
     }
   
     /// Get a chartsheet object from its name.
     public subscript(chartsheet name: String) -> Chartsheet? {
         guard let cs = name.withCString({ s in workbook_get_chartsheet_by_name(lxw_workbook, s) }) else { return nil }
-        return Chartsheet(cs.pointee)
+        return Chartsheet(cs)
     }
     
     /// Validate a worksheet or chartsheet name.
-    func validate(sheet_name: String) { let _ = sheet_name.withCString { workbook_validate_sheet_name(lxw_workbook, $0) } }
+    func validate(sheet_name: String) { 
+        logger.info("validate: \(sheet_name)")
+        let error = sheet_name.withCString { workbook_validate_sheet_name(lxw_workbook, $0) } 
+        if error.rawValue != 0 { 
+            logger.error("error-> validate: \(String(cString: lxw_strerror(error)))") 
+        }
+    }
 
     /// Additionam func by Mac Lee
     @discardableResult public func properties(title: String? = nil, subject: String? = nil, 
@@ -75,7 +87,7 @@ public final class Workbook {
       category: String? = nil, keywords: String? = nil, comments: String? = nil,
       status: String? = nil) -> Workbook {
 
-        var properties = 	lxw_doc_properties()
+        var properties = lxw_doc_properties()
         var doSet = false
         // if title != nil && !title!.isEmpty {
         if let t = title?.makeCString() {

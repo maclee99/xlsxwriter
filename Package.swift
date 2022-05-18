@@ -15,6 +15,7 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         // .package(url: "../Cxlsxwriter", from: "0.0.2"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/maclee99/Cxlsxwriter", from: "0.0.1")
     ],
     targets: [
@@ -22,7 +23,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "xlsxwriter",
-            dependencies: ["Cxlsxwriter"]),
+            dependencies: [
+                "Cxlsxwriter",
+                .product(name: "Logging", package: "swift-log"),
+            ]),
         .testTarget(
             name: "xlsxwriterTests",
             dependencies: ["xlsxwriter"]),

@@ -2,6 +2,7 @@ import XCTest
 @testable import xlsxwriter
 
 final class xlsxwriterTests: XCTestCase {
+
     func testExample() {
         // Create a new workbook
         let wb = Workbook(name: "demo.xlsx")
@@ -17,27 +18,44 @@ final class xlsxwriterTests: XCTestCase {
             .align(horizontal: .center)
             .align(vertical: .center)
             .background(color: .fillGold)
+
+        let bold = wb
+            .addFormat()
+            .bold()
+
+        let dateFormat =  wb.addFormat()
+            .set(num_format: "yyyy/MM/dd")
+
         
         // Add a format.
         let f2 = wb.addFormat().center()
 
-        let f3 = wb.addFormat().background(color: .fillGreen)   //.font(color: .white)
+        let f3 = wb.addFormat()
+            .background(color: .fillGreen)   //.font(color: .white)
+            .align(horizontal: .left)
         
         // Add a worksheet.
-        let ws = wb
-            .addWorksheet()
-            .tab(color: .blue)
-            .set_default(row_height: 25.0)
-            .write("Number", "A12", format: f)
-            .write("Batch 1", "B2", format: f)
-            .write("Batch 2", "C2", format: f)
-            .write(.comment("comment"), Cell(stringLiteral: "C2"))
-            .column("A:A", width: 20.0)
-            .column("B:C", width: 50.0)
-            .gridline(screen: false)
+        let ws = wb.addWorksheet()
+            .setDefault(row_height: 25)
+            .tab(color: .blue) 
+            .gridline(screen: true) 
+            .row(0, width: 30)
+            .column("A:A", width: 10, format: bold) 
+            .column("D:D", width: 12, format: bold) 
+            .column([1, 2], width: 15) 
+            .showComments() 
 
         ws.merge("Merged Range", firstRow: 0, firstCol: 0, lastRow: 0, lastCol: 2, format: f3)
-        
+
+        ws.write("Number", "A2", format: f)
+            .write("Batch 1", "B2", format: f)
+            .write(.string("Batch 2"), "C2", format: f)
+            .write(.comment("comment"), Cell(stringLiteral: "C2")) 
+            .write(.datetime(Date()), "D2", format: dateFormat)
+            .write(.boolean(true), "E2")
+            // .column(Cols(stringLiteral: "A:A"), width: 10, format: bold)
+            // .column(Cols(arrayLiteral: 1, 2), width: 15)
+       
         // Create random data
         let data = (1...100).map {
             [Double($0), Double.random(in: 10...100), Double.random(in: 20...50)]
@@ -50,6 +68,8 @@ final class xlsxwriterTests: XCTestCase {
 
         ws.freeze(row: 2, col: 1)
            .activate()
+        ws.hideColumns(8) 
+
         
         // Create a new Chart
         let chart = wb
@@ -74,6 +94,9 @@ final class xlsxwriterTests: XCTestCase {
             .zoom(scale: 150)
             // .activate()
             .set(chart: chart) // Insert the chart into the chartsheet.
+
+        wb.validate(sheet_name: "Sheet Name")
+
 
     }
 
