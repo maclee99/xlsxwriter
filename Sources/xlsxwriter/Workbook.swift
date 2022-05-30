@@ -91,41 +91,50 @@ public final class Workbook {
         var doSet = false
         // if title != nil && !title!.isEmpty {
         if let t = title?.makeCString() {
+            defer { t.deallocate() }
             properties.title = t  // title!.makeCString()
             doSet = true
         }
         // if subject != nil && !subject!.isEmpty {
         if let subject = subject?.makeCString() {
+            defer { subject.deallocate() }
             properties.subject = subject  // makeCString(from: subject!)
             doSet = true
         }
         // if author != nil && !author!.isEmpty {
         if let author = author?.makeCString() {
+            defer { author.deallocate() }
             properties.author = author  // makeCString(from: author!)
             doSet = true
         }
         // if manager != nil && !manager!.isEmpty {
         if let manager = manager?.makeCString() {
+            defer { manager.deallocate() }
             properties.manager = manager  // makeCString(from: manager!)
             doSet = true
         }
         if let company = company?.makeCString() {
+            defer { company.deallocate() }
             properties.company = company  //makeCString(from: company!)
             doSet = true
         }
         if let category = category?.makeCString() {
+            defer { category.deallocate() }
             properties.category = category  //makeCString(from: category!)
             doSet = true
         }
         if let keywords = keywords?.makeCString() {
+            defer { keywords.deallocate() }
             properties.keywords = keywords  // makeCString(from: keywords!)
             doSet = true
         }
         if let comments = comments?.makeCString() {
+            defer { comments.deallocate() }
             properties.comments = comments  // makeCString(from: comments!)
             doSet = true
         }
         if let status = status?.makeCString() {
+            defer { status.deallocate() }
             properties.status = status  // makeCString(from: status!)
             doSet = true
         }

@@ -120,6 +120,7 @@ public final class Worksheet {
         let error: lxw_error
         switch value {
             case .number(let number): error = worksheet_write_number(self.sheet, r, c, number, f)
+            case .int(let number): error = worksheet_write_number(self.sheet, r, c, Double(number), f)
             case .string(let string): error = string.withCString { s in worksheet_write_string(self.sheet, r, c, s, f) }
             case .url(let url): error = url.path.withCString { s in worksheet_write_url(self.sheet, r, c, s, f) }
             case .blank: error = worksheet_write_blank(self.sheet, r, c, f)
@@ -135,6 +136,45 @@ public final class Worksheet {
             logger.error("error-> write: \(String(cString: lxw_strerror(error)))") 
             fatalError(String(cString: lxw_strerror(error))) 
         }
+
+        return self
+    }
+
+    /// write strings with multiple formats
+    @discardableResult public func richString(_ cell: Cell, string: [String] = [], formats: [Format?] = [], format: Format? = nil) -> Worksheet {
+        logger.info("richString: \(cell)|\(string)|\(formats)") 
+        var string_fragments = [lxw_rich_string_tuple]()
+        // let buffer = UnsafeMutableBufferPointer<UnsafeMutablePointer<lxw_rich_string_tuple>?>.allocate(capacity: string.count + 1)
+        // defer { buffer.deallocate() }
+        var fragments: [UnsafeMutablePointer<lxw_rich_string_tuple>?] = [UnsafeMutablePointer<lxw_rich_string_tuple>?]()
+
+        if !string.isEmpty {
+            fragments = Array(repeating: UnsafeMutablePointer<lxw_rich_string_tuple>.allocate(capacity: 1), count: string.count+1)
+            fragments[string.count] = nil
+            string_fragments = Array(repeating: lxw_rich_string_tuple(), count: string.count)
+            for i in string.indices {
+                // table_columns[i].header = (from: header[i].makeCString())
+                string_fragments[i] = lxw_rich_string_tuple()
+                string_fragments[i].string = string[i].makeCString() 
+                if formats.endIndex > i && formats[i] != nil {
+                    string_fragments[i].format = formats[i]?.lxw_format
+                }
+                fragments[i] = withUnsafeMutablePointer(to: &string_fragments[i]){$0}
+            }
+        } 
+
+        logger.info("call function: \(fragments)") 
+        let error = worksheet_write_rich_string(self.sheet, cell.row, cell.col, 
+            &fragments,
+            format?.lxw_format);
+
+        if error.rawValue != 0 { 
+            logger.error("error-> richString: \(String(cString: lxw_strerror(error)))") 
+            fatalError(String(cString: lxw_strerror(error))) 
+        }
+
+        logger.info("free allocates")
+        string_fragments.forEach { if let _ = $0.string {$0.string.deallocate() } }
 
         return self
     }
@@ -183,6 +223,20 @@ public final class Worksheet {
         return self
     }
 
+    /// Set the properties for one or more columns of cells.
+    @discardableResult public func column(_ cols: Cols, pixel: UInt32, format: Format? = nil) -> Worksheet {
+        logger.info("column: \(cols)|pixel: \(pixel)|\(String(describing: format))")
+        let firstCol = cols.col
+        let lastCol = cols.col2
+        let f = format?.lxw_format
+
+        let error = worksheet_set_column_pixels(self.sheet, firstCol, lastCol, pixel, f) 
+        if error.rawValue != 0 { 
+            logger.error("error-> column(pixel): \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
     @discardableResult public func column(_ col: lxw_col_t, _ col2: lxw_col_t, width: Double = LXW_DEF_COL_WIDTH, format: Format? = nil) -> Worksheet {
         logger.info("column: \(col)|\(col2)|\(width)|\(String(describing: format))")
         // let firstCol = UInt16(col)
@@ -196,19 +250,49 @@ public final class Worksheet {
         return self
     }
 
+    @discardableResult public func column(_ col: lxw_col_t, _ col2: lxw_col_t, pixel: UInt32, format: Format? = nil) -> Worksheet {
+        logger.info("column: \(col)|\(col2)|pixel: \(pixel)|\(String(describing: format))")
+        // let firstCol = UInt16(col)
+        // let lastCol = UInt16(col2)
+        let f = format?.lxw_format
+
+        let error = worksheet_set_column_pixels(self.sheet, col, col2, pixel, f) 
+        if error.rawValue != 0 { 
+            logger.error("error--> column(pixel): \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
     /// change the default properties of a row. The most common use for this function is to change the height of a row
     /// The height is specified in character units
-    @discardableResult public func row(_ row: UInt32, width: Double, format: Format? = nil) -> Worksheet {
-        logger.info("row: \(row)|\(width)|\(String(describing: format))")
+    @discardableResult public func row(_ row: UInt32, height: Double, format: Format? = nil) -> Worksheet {
+        logger.info("row: \(row)|\(height)|\(String(describing: format))")
         // let rowToSet = UInt32(row)
         let f = format?.lxw_format
 
-        let error = worksheet_set_row(self.sheet, row, width, f) 
+        let error = worksheet_set_row(self.sheet, row, height, f) 
         if error.rawValue != 0 { 
             logger.error("error--> row: \(String(cString: lxw_strerror(error)))") 
         }
         return self
     }
+
+    @discardableResult public func rowOption(_ row: Int, height: Double = LXW_DEF_ROW_HEIGHT, 
+        hidden: Bool? = nil, level: Int? = nil, collapsed: Bool? = nil,
+        format: Format? = nil) -> Worksheet {
+        var opt = lxw_row_col_options()
+        if let hidden = hidden { opt.hidden = hidden ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+        if let level = level { opt.level = UInt8(level) }
+        if let collapsed = collapsed { opt.collapsed = collapsed ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+
+        let error = worksheet_set_row_opt(self.sheet, UInt32(row), height, format?.lxw_format, &opt) 
+        if error.rawValue != 0 { 
+            logger.error("error--> rowOption: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        return self
+    }
+    
 
 
     /// Set the properties for one or more columns of cells.
@@ -261,6 +345,98 @@ public final class Worksheet {
         return self
     }
 
+    @discardableResult public func filter(_ col: Int, criteria: FilterCriteria? = nil,
+        string: String? = nil, value: Double? = nil) -> Worksheet {
+        logger.info("filter: \(col)|\(String(describing: criteria))|\(String(describing: string))|\(String(describing: value))")
+
+        var rule = lxw_filter_rule()
+        if let c = criteria { rule.criteria = c.rawValue  }
+        if let s = string {
+            let str = s.makeCString()
+            // defer { str.deallocate() }
+            rule.value_string = str
+        }
+        if let v = value { rule.value = v }
+
+        // var filter_rule2 = lxw_filter_rule()
+        // filter_rule2.criteria = UInt8(LXW_FILTER_CRITERIA_EQUAL_TO.rawValue)
+        // filter_rule2.value_string = "East".makeCString()
+        // logger.info("filter: \(rule)|\(filter_rule2)")
+        logger.info("rule: \(rule)")
+
+        let error = worksheet_filter_column(self.sheet, UInt16(col), &rule) 
+        if error.rawValue != 0 { 
+            logger.error("error--> filter: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        if let _ = string {
+            rule.value_string.deallocate()
+        }
+
+
+        return self
+    }
+
+    @discardableResult public func filter2(_ col: Int, 
+        criteria: FilterCriteria? = nil, string: String? = nil, value: Double? = nil, 
+        criteria2: FilterCriteria? = nil, string2: String? = nil, value2: Double? = nil, 
+        andOr: FilterOperator = .or) -> Worksheet {
+
+        var rule = lxw_filter_rule()
+        if let c = criteria { rule.criteria = c.rawValue  }
+        if let s = string {
+            let str = s.makeCString()
+            // defer { str.deallocate() }
+            rule.value_string = str
+        }
+        if let v = value { rule.value = v }
+
+        var rule2 = lxw_filter_rule()
+        if let c2 = criteria2 { rule2.criteria = c2.rawValue  }
+        if let s2 = string2 {
+            let str2 = s2.makeCString()
+            // defer { str.deallocate() }
+            rule2.value_string = str2
+        }
+        if let v2 = value2 { rule2.value = v2 }
+
+        logger.info("rule: \(rule)|\(rule2)|\(andOr.rawValue)|\(LXW_FILTER_OR)")
+
+
+        let error = worksheet_filter_column2(self.sheet, UInt16(col), &rule, &rule2, andOr.rawValue) 
+        if error.rawValue != 0 { 
+            logger.error("error--> filter2: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        if let _ = string {
+            rule.value_string.deallocate()
+        }
+        if let _ = string2 {
+            rule2.value_string.deallocate()
+        }
+
+        return self
+    }
+
+    @discardableResult public func filterList(_ col: Int, list: [String] = [] ) -> Worksheet {
+        logger.info("filterList: \(col)|\(list)")
+
+        var filters: [UnsafeMutablePointer<CChar>?] = []
+        list.forEach{ str in
+            filters.append(str.makeCString())
+        }
+        filters.append(nil)
+
+        let error = worksheet_filter_list(self.sheet, UInt16(col), &filters) 
+        if error.rawValue != 0 { 
+            logger.error("error--> filterList: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        filters.forEach { if let _ = $0 {$0?.deallocate() } }
+
+        return self
+    }
+
     /// Set the option to display or hide gridlines on the screen and the printed page.
     @discardableResult public func gridline(screen: Bool, print: Bool = false) -> Worksheet {
         worksheet_gridlines(self.sheet, UInt8((print ? 2 : 0) + (screen ? 1 : 0))) 
@@ -273,15 +449,26 @@ public final class Worksheet {
     }
 
     /// Set a table in the worksheet.
-    @discardableResult public func table(range: Range, name: String? = nil, header: [String] = [], format: [Format?] = [], totalRow: [TotalFunction] = []) -> Worksheet {
-        var options = lxw_table_options()
+    @discardableResult public func table(range: Range, name: String? = nil, header: [String] = [], 
+        headerFormat: [Format?] = [], format: [Format?] = [], totalRow: [TotalFunction] = [], formula: [String] = [],
+        autoFilter: Bool = true, headerRow: Bool = true, firstColumn: Bool = false, lastColumn: Bool = false,
+        bandedColumns: Bool = false, bandedRows: Bool = true, styleType: UInt8? = nil, 
+        styleNumber: UInt8? = nil) -> Worksheet {
+        
+        var defaultOptions = lxw_table_options()
 
-        if let name = name { options.name = name.makeCString() } //(from: name) }
+        if let name = name { defaultOptions.name = name.makeCString() } //(from: name) }
 
-        options.style_type = UInt8(LXW_TABLE_STYLE_TYPE_MEDIUM.rawValue)
-        options.style_type_number = 7
+        defaultOptions.style_type = styleType != nil ? styleType! : UInt8(LXW_TABLE_STYLE_TYPE_MEDIUM.rawValue)
+        defaultOptions.style_type_number = styleNumber != nil ? styleNumber! : 9  //7
+        defaultOptions.no_autofilter = autoFilter ? LxwBoolean.false.rawValue : LxwBoolean.true.rawValue
+        defaultOptions.no_header_row = headerRow ? LxwBoolean.false.rawValue : LxwBoolean.true.rawValue
+        defaultOptions.first_column = firstColumn ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue
+        defaultOptions.last_column  = lastColumn ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue
+        defaultOptions.no_banded_rows = bandedRows ? LxwBoolean.false.rawValue : LxwBoolean.true.rawValue
+        defaultOptions.banded_columns = bandedColumns ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue
         // options.total_row = 0
-        options.total_row = totalRow.isEmpty ? UInt8(LXW_FALSE.rawValue) : UInt8(LXW_TRUE.rawValue)
+        defaultOptions.total_row = totalRow.isEmpty ? UInt8(LXW_FALSE.rawValue) : UInt8(LXW_TRUE.rawValue)
 
         var table_columns = [lxw_table_column]()
         let buffer = UnsafeMutableBufferPointer<UnsafeMutablePointer<lxw_table_column>?>.allocate(capacity: header.count + 1)
@@ -292,25 +479,54 @@ public final class Worksheet {
             for i in header.indices {
                 // table_columns[i].header = (from: header[i].makeCString())
                 table_columns[i].header = header[i].makeCString()
+                if headerFormat.endIndex > i {
+                    table_columns[i].header_format = headerFormat[i]?.lxw_format
+                }
                 if format.endIndex > i {
-                    table_columns[i].header_format = format[i]?.lxw_format
+                    // table_columns[i].header_format = format[i]?.lxw_format
+                    table_columns[i].format = format[i]?.lxw_format
                 }
                 if totalRow.endIndex > i {
-                    table_columns[i].total_function = totalRow[i].rawValue
+                    if totalRow[i] == .none {
+                        if (formula.endIndex > i) {
+                            if !formula[i].isEmpty && !formula[i].hasPrefix("=") {
+                                table_columns[i].total_string = formula[i].makeCString()
+                            } else {
+                                table_columns[i].total_function = totalRow[i].rawValue
+                            }
+                        }
+                    } else {
+                        table_columns[i].total_function = totalRow[i].rawValue
+                    }
+
+                }
+                if (formula.endIndex > i) {
+                    if !formula[i].isEmpty && formula[i].hasPrefix("=") {
+                        table_columns[i].formula = formula[i].makeCString()
+                    }
                 }
                 withUnsafeMutablePointer(to: &table_columns[i]) {
                     buffer.baseAddress?.advanced(by: i).pointee = $0
                 }
             }
-            options.columns = buffer.baseAddress
+            defaultOptions.columns = buffer.baseAddress
         }
 
-        let error = worksheet_add_table(self.sheet, range.row, range.col, range.row2 + (totalRow.isEmpty ? 0 : 1), range.col2, &options) 
+        let rowDelta: UInt32 = 0    // (totalRow.isEmpty ? 0 : 1)
+        let error = worksheet_add_table(self.sheet, range.row, range.col, range.row2 + rowDelta, 
+            range.col2, &defaultOptions) 
         if error.rawValue != 0 { 
             logger.error("error--> table: \(String(cString: lxw_strerror(error)))") 
         }
-        if let _ = name { options.name.deallocate() }
-        table_columns.forEach { $0.header.deallocate() }
+
+        // deallocate
+        if let _ = name { defaultOptions.name.deallocate() }
+        table_columns.forEach { 
+            $0.header.deallocate()
+            if let _ = $0.total_string { $0.total_string.deallocate() }
+            if let _ = $0.formula { $0.formula.deallocate() }
+        }
+
         return self
     }
 
@@ -325,7 +541,9 @@ public final class Worksheet {
         let c2 = UInt16(lastCol)
 
         logger.info("merge: \(string)|\(firstCol)|\(firstRow)|\(lastCol)|\(lastRow)|\(String(describing: format))")
-        let error = worksheet_merge_range(lxw_worksheet, r1, c1, r2, c2, string.makeCString(), f) 
+        let cellStr = string.makeCString()
+        defer { cellStr.deallocate() }
+        let error = worksheet_merge_range(lxw_worksheet, r1, c1, r2, c2, cellStr, f) 
         if error.rawValue != 0 { 
             logger.error("error--> merge: \(String(cString: lxw_strerror(error)))") 
         }
@@ -344,6 +562,43 @@ public final class Worksheet {
         return self
     }
 
+    @discardableResult public func arrayFormula(_ range: Range, formula: String, format: Format? = nil) -> Worksheet {
+
+        let formulaStr = formula.makeCString()
+        defer { formulaStr.deallocate() }
+        let error = worksheet_write_array_formula(
+            self.sheet, range.row, range.col, range.row2, range.col2, formulaStr, format?.lxw_format)
+        if error.rawValue != 0 { 
+            logger.error("error--> arrayFormula: \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
+    @discardableResult public func dynamicArrayFormula(_ range: Range, formula: String, format: Format? = nil) -> Worksheet {
+
+        let formulaStr = formula.makeCString()
+        defer { formulaStr.deallocate() }
+        let error = worksheet_write_dynamic_array_formula(
+            self.sheet, range.row, range.col, range.row2, range.col2, formulaStr, format?.lxw_format)
+        if error.rawValue != 0 { 
+            logger.error("error--> dynamicArrayFormula: \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
+    @discardableResult public func dynamicFormula(_ cell: Cell, formula: String, format: Format? = nil) -> Worksheet {
+
+        let formulaStr = formula.makeCString()
+        defer { formulaStr.deallocate() }
+        let error = worksheet_write_dynamic_formula(
+            self.sheet, cell.row, cell.col, formulaStr, format?.lxw_format)
+        if error.rawValue != 0 { 
+            logger.error("error--> dynamicFormula: \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
+
     /// Make a worksheet the active, i.e., visible worksheet.
     @discardableResult public func showComments() -> Worksheet {
         worksheet_show_comments(self.sheet) 
@@ -355,6 +610,56 @@ public final class Worksheet {
         let r = UInt32(row)
         let c = UInt16(col)
         worksheet_freeze_panes(self.sheet, r, c) 
+        return self
+    }
+
+    ///  allows cells to be merged together so that they act as a single area.
+    @discardableResult public func conditionFormat(range: Range, type: ConditionalFormatTypes = .none,
+        criteria: ConditionalCriteria = .none, value: Double? = nil, valueString: String? = nil,
+        min: Double? = nil, max: Double? = nil, multiRange: String? = nil, 
+        minColor: UInt32? = nil, midColor: UInt32? = nil, maxColor: UInt32? = nil,
+        barOnly: Bool? = nil, barColor: UInt32? = nil, barSolid: Bool? = nil,
+        barDirection: conditionalFormatBarDrection? = nil, bar2010: Bool? = nil,
+        negativeColorSame: Bool? = nil, negativeBorderColorSame: Bool? = nil,
+        iconStyle: conditionalIconTypes? = nil, reverseIcons: Bool? = nil, iconOnly: Bool? = nil,
+        format: Format? = nil ) -> Worksheet {
+
+        if type != .none {
+            var option = lxw_conditional_format()
+            option.type = type.rawValue
+            option.criteria = criteria.rawValue
+            if let v = value { option.value = v }
+            if let s = valueString { option.value_string = s.makeCString() }
+            if let min = min { option.min_value = min }
+            if let max = max { option.max_value = max }
+            if let mr = multiRange { option.multi_range = mr.makeCString() }
+            if let minColor = minColor { option.min_color = minColor }
+            if let midColor = midColor { option.mid_color = midColor }
+            if let maxColor = maxColor { option.max_color = maxColor }
+            if let barOnly = barOnly { option.bar_only =  barOnly ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let barColor = barColor { option.bar_color = barColor }
+            if let barSolid = barSolid { option.bar_solid =  barSolid ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let barDirection = barDirection { option.bar_direction =  barDirection.rawValue }
+            if let bar2010 = bar2010 { option.data_bar_2010 =  bar2010 ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let negativeColorSame = negativeColorSame { option.bar_negative_color_same =  negativeColorSame ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let negativeBorderColorSame = negativeBorderColorSame { option.bar_negative_border_color_same  =  negativeBorderColorSame ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let iconStyle = iconStyle { option.icon_style =  iconStyle.rawValue }
+            if let reverseIcons = reverseIcons { option.reverse_icons  =  reverseIcons ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            if let iconOnly = iconOnly { option.icons_only =  iconOnly ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+            option.format = format?.lxw_format
+
+            let error = worksheet_conditional_format_range(self.sheet, range.row, range.col, range.row2, 
+                range.col2, &option)
+            if error.rawValue != 0 { 
+                logger.error("error--> conditionFormat: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            if let _ = option.multi_range { option.multi_range.deallocate() }
+            if let _ = option.value_string { option.value_string.deallocate() }
+        }
+        // let r = UInt32(row)
+        // let c = UInt16(col)
+        // worksheet_freeze_panes(self.sheet, r, c) 
         return self
     }
 

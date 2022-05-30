@@ -109,11 +109,22 @@ public struct Format {
         format_set_font_color(lxw_format, color.rawValue)
         return self
     }
+    @discardableResult public func font(color: UInt32) -> Format {
+        format_set_font_color(lxw_format, color)
+        return self
+    }
 
     /// Set the pattern background color for a cell.
     @discardableResult public func background(color: Color) -> Format {
         format_set_pattern(lxw_format, 1)
         format_set_bg_color(lxw_format, color.rawValue)
+        return self
+    }
+
+    /// Set the pattern background color for a cell.
+    @discardableResult public func background(color: UInt32) -> Format {
+        format_set_pattern(lxw_format, 1)
+        format_set_bg_color(lxw_format, color)
         return self
     }
 
@@ -126,6 +137,12 @@ public struct Format {
     /// Set the size of the font used in the cell.
     @discardableResult public func font(size: Double) -> Format {
         format_set_font_size(lxw_format, size)
+        return self
+    }
+
+    /// Set the size of the font used in the cell.
+    @discardableResult public func fontScript(_ script: formatScripts) -> Format {
+        format_set_font_script(lxw_format, script.rawValue)
         return self
     }
 }
