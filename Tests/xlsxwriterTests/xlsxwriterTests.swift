@@ -1039,6 +1039,125 @@ final class xlsxwriterTests: XCTestCase {
         ws.write( "Month", "D1")
     }
 
+    /// MARK: Validation
+    func testValidation() {
+        let wb = Workbook(name: "data_validate1.xlsx")
+        defer { wb.close() }
+
+        let header = wb.addFormat()
+            .border(style: .thin)
+            .fg(color: 0xC6EFCE)
+            .bold()
+            .textWrap()
+            .align(vertical: .center)
+            .indent(level: 1)
+
+
+        // Example 1. Limiting input to an integer in a fixed range.
+        let ws1 = wb.addWorksheet()
+        // write some data for the validations
+        _writeValidationData(ws1, format: header)
+
+        // Set up layout of the worksheet
+        ws1.column("A:A", width: 55)
+        ws1.column("B:B", width: 15)
+        ws1.column("D:D", width: 15)
+        ws1.row(0, height: 36)
+
+        ws1.write("Enter an integer between 1 and 10", "A3")
+        ws1.validation(row: 2, col: 1, type: .integer, criteria: .between, minNumber: 1, maxNumber: 10)
+
+        // Example 2. Limiting input to an integer outside a fixed range.
+        ws1.write("Enter an integer not between 1 and 10 (using cell references)", "A5")
+        ws1.validation(row: 4, col: 1, type: .integerFormula, criteria: .notBetween, minFormula: "=E3", maxFormula: "=F3")
+
+        // Example 3. Limiting input to an integer greater than a fixed value
+        ws1.write("Enter an integer greater than 0", "A7")
+        ws1.validation(row: 6, col: 1, type: .integer, criteria: .greaterThan, value: 0)
+
+        // Example 4. Limiting input to an integer less than a fixed value
+        ws1.write("Enter an integer less than 10", "A9")
+        ws1.validation(row: 8, col: 1, type: .integer, criteria: .lessThan, value: 10)
+
+        // Example 5. Limiting input to a decimal in a fixed range.
+        ws1.write("Enter an decimal between 0.1 and 0.5", "A11")
+        ws1.validation(row: 10, col: 1, type: .decimal, criteria: .between, minNumber: 0.1, maxNumber: 0.5)
+
+        // Example 6. Limiting input to a value in a dropdown list.
+        ws1.write("Select a value from a drop down list", "A13")
+        ws1.validation(row: 12, col: 1, type: .list, list: ["open", "high", "close"])
+
+        // Example 7. Limiting input to a value in a dropdown list.
+        ws1.write("Select a value from a drop down list (using a cell range)", "A15")
+        ws1.validation(row: 14, col: 1, type: .listFormula, valueFormula: "=$E$4:$G$4")
+
+        // Example 8. Limiting input to a date in a fixed range.
+        ws1.write("Enter a date between 1/1/2022 and 12/31/2022", "A17")
+        // let startDateStr = "2022-01-01T00:00:00+0000"
+        // let endDateStr = "2022-12-31T00:00:00+0000"
+        // let dateFormatter = ISO8601DateFormatter()
+        // let startDate = dateFormatter.date(from: startDateStr)
+        // let endDate = dateFormatter.date(from: endDateStr)
+
+        let calendar = Calendar(identifier: .iso8601)
+        let dayComponent = DateComponents(year: 2022, month: 1, day: 1, hour: 0, minute: 0, second: 0)
+        let startDate = calendar.date(from: dayComponent)
+        let dayComponent2 = DateComponents(year: 2022, month: 12, day: 31, hour: 0, minute: 0, second: 0)
+        let endDate = calendar.date(from: dayComponent2)
+        ws1.validation(row: 16, col: 1, type: .date, criteria: .between, minDate: startDate, maxDate: endDate)
+
+        // Example 9. Limiting input to a time in a fixed range.
+        ws1.write("Enter a time between 6:00 and 12:00", "A19")
+        ws1.validation(row: 18, col: 1, type: .time, criteria: .between, minTime: [6, 0], maxTime: [12, 0, 0])
+
+        // Example 10. Limiting input to a string greater than a fixed length.
+        ws1.write("Enter a string longer than 3 characters", "A21")
+        ws1.validation(row: 20, col: 1, type: .length, criteria: .greaterThan, value: 3)
+
+        // Example 11. Limiting input based on a formula.
+        ws1.write("Enter a value if the following is true \"=AND(F5=50,G5=60)\"", "A23")
+        ws1.validation(row: 22, col: 1, type: .customFormula, valueFormula: "=AND(F5=50,G5=60)")
+
+        // Example 12. Display and modify data validation messages.
+        ws1.write("Displays a message when you select the cell", "A25")
+        ws1.validation(row: 24, col: 1, type: .integer, criteria: .between, minNumber: 1, maxNumber: 100, title: "Enter an integer:", message: "between 1 and 100")
+
+        // Example 13. Display and modify data validation messages.
+        ws1.write("Displays a custom message when integer isn't between 1 and 100", "A27")
+        ws1.validation(row: 26, col: 1, type: .integer, criteria: .between, minNumber: 1, maxNumber: 100, 
+            title: "Enter an integer:", message: "between 1 and 100", 
+            errorTitle: "Input value is not valid!", errorMessage: "It should be an integer between 1 and 100")
+
+        // Example 14. Display and modify data validation messages.
+        ws1.write("Displays a custom info message when integer isn't between 1 and 100", "A29")
+        ws1.validation(row: 28, col: 1, type: .integer, criteria: .between, minNumber: 1, maxNumber: 100, 
+            title: "Enter an integer:", message: "between 1 and 100", 
+            errorTitle: "Input value is not valid!", errorMessage: "It should be an integer between 1 and 100",
+            errorType: .information)
+
+
+    }
+
+    private func _writeValidationData(_ ws: Worksheet, format: Format? = nil){
+        ws.write("Some examples of data validation in libxlsxwriter", "A1", format: format)
+        ws.write("Enter values in this column", "B1", format: format)
+        ws.write("Sample Data", "D1", format: format)
+
+        ws.write("Integers", "D3")
+        ws.write(.int(1), "E3")
+        ws.write(.int(10), "F3")
+
+        ws.write("List Data", "D4")
+        ws.write("open", "E4")
+        ws.write("high", "F4")
+        ws.write("close", "G4")
+
+        ws.write("Formula", "D5")
+        ws.write("=AND(F5=50,G5=60)", "E5")
+        ws.write(.int(50), "F5")
+        ws.write(.int(60), "G5")
+
+    }
 
 
 
@@ -1053,6 +1172,7 @@ final class xlsxwriterTests: XCTestCase {
         ("testArrayFormula", testArrayFormula),
         ("testDynamicArrayFormula", testDynamicArrayFormula),
         ("testAutoFilter", testAutoFilter),
+        ("testValidation", testValidation),
     ]
 }
 

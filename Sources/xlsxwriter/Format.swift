@@ -120,13 +120,26 @@ public struct Format {
         format_set_bg_color(lxw_format, color.rawValue)
         return self
     }
-
     /// Set the pattern background color for a cell.
     @discardableResult public func background(color: UInt32) -> Format {
         format_set_pattern(lxw_format, 1)
         format_set_bg_color(lxw_format, color)
         return self
     }
+
+    /// Set the pattern foreground color for a cell.
+    @discardableResult public func fg(color: Color) -> Format {
+        // format_set_pattern(lxw_format, 1)
+        format_set_fg_color(lxw_format, color.rawValue)
+        return self
+    }
+    /// Set the pattern background color for a cell.
+    @discardableResult public func fg(color: UInt32) -> Format {
+        // format_set_pattern(lxw_format, 1)
+        format_set_fg_color(lxw_format, color)
+        return self
+    }
+
 
     /// Set the rotation of the text in a cell.
     @discardableResult public func rotation(angle: Int) -> Format {
@@ -137,6 +150,21 @@ public struct Format {
     /// Set the size of the font used in the cell.
     @discardableResult public func font(size: Double) -> Format {
         format_set_font_size(lxw_format, size)
+        return self
+    }
+
+    /// Turn text wrapping on for the text in a cell. 
+    /// If you wish to control where the text is wrapped you can add newline characters to the string.
+    @discardableResult public func textWrap() -> Format {
+        format_set_text_wrap(lxw_format)
+        return self
+    }
+
+    /// Indent text in a cell. 
+    /// Indentation is a horizontal alignment property. It will override any other horizontal properties
+    /// but it can be used in conjunction with vertical properties.
+    @discardableResult public func indent(level: Int) -> Format {
+        format_set_indent(lxw_format, UInt8(level))
         return self
     }
 

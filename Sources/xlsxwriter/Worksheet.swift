@@ -3,6 +3,7 @@
 //  Created by Daniel Müllenborn on 31.12.20.
 //
 
+import Foundation
 import Cxlsxwriter
 import Logging
 
@@ -293,8 +294,6 @@ public final class Worksheet {
         return self
     }
     
-
-
     /// Set the properties for one or more columns of cells.
     @discardableResult public func hideColumns(_ col: Int, width: Double = 8.43) -> Worksheet {
         let first = UInt16(col)
@@ -421,12 +420,14 @@ public final class Worksheet {
     @discardableResult public func filterList(_ col: Int, list: [String] = [] ) -> Worksheet {
         logger.info("filterList: \(col)|\(list)")
 
+        //char* list[] = {"March", "April", "May", NULL};
         var filters: [UnsafeMutablePointer<CChar>?] = []
         list.forEach{ str in
             filters.append(str.makeCString())
         }
         filters.append(nil)
 
+        //char ** 	list 
         let error = worksheet_filter_list(self.sheet, UInt16(col), &filters) 
         if error.rawValue != 0 { 
             logger.error("error--> filterList: \(String(cString: lxw_strerror(error)))") 
@@ -612,6 +613,92 @@ public final class Worksheet {
         worksheet_freeze_panes(self.sheet, r, c) 
         return self
     }
+
+    ///  allows cells to be merged together so that they act as a single area.
+    @discardableResult public func validation(row: Int, col: Int, type: ValidationTypes = .none,
+        criteria: ValidationCriteria = .none, minNumber: Double? = nil, maxNumber: Double? = nil,
+        minFormula: String? = nil, maxFormula: String? = nil, value: Double? = nil,
+        list: [String] = [], valueFormula: String? = nil, minDate: Date? = nil, maxDate: Date? = nil,
+        minTime: Time? = nil, maxTime: Time? = nil, title: String? = nil, message: String? = nil,
+        errorTitle: String? = nil, errorMessage: String? = nil, errorType: ValidationErrorTypes? = nil
+        ) -> Worksheet {
+
+        logger.info("validation: \(row)|\(col)|\(type)|\(criteria)|\(String(describing: minNumber))|\(String(describing: maxNumber))|\(String(describing: minFormula))|\(String(describing: maxFormula))")
+        logger.info("LXW_VALIDATION_CRITERIA_NOT_BETWEEN=\(LXW_VALIDATION_CRITERIA_NOT_BETWEEN.rawValue)")
+
+        let r = UInt32(row)
+        let c = UInt16(col)
+        //char *list[] = {"open", "high", "close", NULL};
+        let buffer = UnsafeMutableBufferPointer<UnsafeMutablePointer<CChar>?>.allocate(capacity: list.count+1)
+        defer { buffer.deallocate() }
+
+        if type != .none {
+            var option = lxw_data_validation()
+            option.validate = type.rawValue
+            option.criteria = criteria.rawValue
+            if let minN = minNumber { option.minimum_number = minN }
+            if let maxN = maxNumber { option.maximum_number = maxN }
+            if let val  = value { option.value_number = val }
+            if let minF = minFormula { option.minimum_formula = minF.makeCString() }
+            if let maxF = maxFormula { option.maximum_formula = maxF.makeCString() }
+            if let valueF = valueFormula { option.value_formula = valueF.makeCString() }
+            if list.count > 0 {
+                for i in list.indices {
+                    logger.info("-->\(i)|\(list[i])")
+                    buffer.baseAddress?.advanced(by: i).pointee = list[i].makeCString()
+                }
+                buffer.baseAddress?.advanced(by: list.count).pointee = nil
+                logger.info("\(buffer)|\(String(describing: buffer.baseAddress))")
+                //char **value_list;
+                option.value_list = buffer.baseAddress
+            }
+            if let minD = minDate {
+                let calendar = Calendar(identifier: .iso8601)   //Calendar.current
+                let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: minD)
+                let d = lxw_datetime(year: Int32(c.year!), month: Int32(c.month!), day: Int32(c.day!), hour: Int32(c.hour!), min: Int32(c.minute!), sec: Double(c.second!))
+                option.minimum_datetime = d
+            }
+            if let maxD = maxDate {
+                let calendar = Calendar(identifier: .iso8601)   //Calendar.current
+                let c = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: maxD)
+                let d = lxw_datetime(year: Int32(c.year!), month: Int32(c.month!), day: Int32(c.day!), hour: Int32(c.hour!), min: Int32(c.minute!), sec: Double(c.second!))
+                option.maximum_datetime = d
+            }
+            if let minT = minTime {
+                let d = lxw_datetime(year: Int32(0), month: Int32(0), day: Int32(0), hour: minT.hour, min: minT.min, sec: minT.second)
+                option.minimum_datetime = d
+            }
+            if let maxT = maxTime {
+                let d = lxw_datetime(year: Int32(0), month: Int32(0), day: Int32(0), hour: maxT.hour, min: maxT.min, sec: maxT.second)
+                option.maximum_datetime = d
+            }
+            if let title = title { option.input_title = title.makeCString() }
+            if let message = message { option.input_message = message.makeCString() }
+            if let errtitle = errorTitle { option.error_title = errtitle.makeCString() }
+            if let errmessage = errorMessage { option.error_message = errmessage.makeCString() }
+            if let errType = errorType { option.error_type = errType.rawValue }
+
+
+            logger.info("option: \(option)")
+
+            let error = worksheet_data_validation_cell(self.sheet, r, c, &option)
+            if error.rawValue != 0 { 
+                logger.error("error--> validation: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            if let _ = option.minimum_formula { option.minimum_formula.deallocate() }
+            if let _ = option.maximum_formula { option.maximum_formula.deallocate() }
+            if let _ = option.value_formula   { option.value_formula.deallocate() }
+            if let _ = option.input_title     { option.input_title.deallocate() }
+            if let _ = option.input_message   { option.input_message.deallocate() }
+            if let _ = option.error_title     { option.error_title.deallocate() }
+            if let _ = option.error_message   { option.error_message.deallocate() }
+
+        }
+
+        return self
+    }
+
 
     ///  allows cells to be merged together so that they act as a single area.
     @discardableResult public func conditionFormat(range: Range, type: ConditionalFormatTypes = .none,

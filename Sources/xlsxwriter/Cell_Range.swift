@@ -73,3 +73,53 @@ public struct Range: ExpressibleByStringLiteral, ExpressibleByArrayLiteral {
         logger.info("init: arrayLiteral=\(elements) --> \(self.col)|\(self.row)||\(self.col2)|\(self.row2)")
     }
 }
+
+
+
+public struct Time: ExpressibleByStringLiteral, ExpressibleByArrayLiteral {
+    // private let logger = Logger(label: "Cell")
+    let hour: Int32, min: Int32, second: Double
+
+    public init(stringLiteral value: String) { 
+        // (self.hour, self.min) = value.withCString { (lxw_name_to_row($0), lxw_name_to_col($0)) } 
+        let s = value.split(separator: ":")
+        if s.count > 0  {
+            self.hour = Int32(s[0])!
+        } else {
+            self.hour = 0
+        }
+        if s.count > 1 {
+            self.min = Int32(s[1])!
+        } else {
+            self.min = 0
+        }
+        if s.count > 2 {
+            self.second = Double(s[2])!
+        } else {
+            self.second = 0
+        }
+        logger.info("init: stringLiteral=\(value) --> \(self.hour)|\(self.min)|\(self.second)")
+      }
+
+    public init(arrayLiteral elements: Int...) {
+        // precondition(elements.count == 2, "[hour, min]")
+        if elements.count > 0 {
+            self.hour = Int32(elements[0])
+        } else {
+            self.hour = 0
+        }
+        if elements.count > 1 {
+            self.min = Int32(elements[1])
+        } else {
+            self.min = 0
+        }
+        if elements.count > 2 {
+            self.second = Double(elements[2])
+        } else {
+            self.second = 0
+        }
+        logger.info("init: arrayLiteral=\(elements) --> \(self.hour)|\(self.min)|\(self.second)")
+    }
+
+
+}
