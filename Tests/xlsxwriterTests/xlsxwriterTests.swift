@@ -1134,8 +1134,6 @@ final class xlsxwriterTests: XCTestCase {
             title: "Enter an integer:", message: "between 1 and 100", 
             errorTitle: "Input value is not valid!", errorMessage: "It should be an integer between 1 and 100",
             errorType: .information)
-
-
     }
 
     private func _writeValidationData(_ ws: Worksheet, format: Format? = nil){
@@ -1161,6 +1159,34 @@ final class xlsxwriterTests: XCTestCase {
 
 
 
+    /// MARK: Image
+    func testImage() {
+        let wb = Workbook(name: "images.xlsx")
+        defer { wb.close() }
+
+        let ws1 = wb.addWorksheet()
+
+        // Change some of the column widths for clarity.
+        ws1.column("A:A", width: 30)
+
+        // Insert an image.
+        ws1.write("Inset an image in a cell:", "A2")
+        ws1.image(row: 1, col: 1, fileName: "logo.png")
+
+        // Insert an image offset in the cell
+        ws1.write("Inset an offset image.", "A12")
+        ws1.imageOpt("B12", fileName: "logo.png", xOffset: 15, yOffset: 10)
+
+        // Insett an image with scaling.
+        ws1.write("Inset a scaled image.", "A22")
+        ws1.imageOpt("B22", fileName: "logo.png", xScale: 0.5, yScale: 0.5)
+
+        // Insert an image with a hyperlink.
+        ws1.write("Inset an image with a hyperlink:", "A32")
+        ws1.imageOpt("B32", fileName: "logo.png", url: "https://github.com/jmcnamara")
+    }
+
+
 
 
     static var allTests = [
@@ -1173,6 +1199,7 @@ final class xlsxwriterTests: XCTestCase {
         ("testDynamicArrayFormula", testDynamicArrayFormula),
         ("testAutoFilter", testAutoFilter),
         ("testValidation", testValidation),
+        ("testImage", testImage),
     ]
 }
 

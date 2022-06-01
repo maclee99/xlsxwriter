@@ -615,6 +615,21 @@ public final class Worksheet {
     }
 
     ///  allows cells to be merged together so that they act as a single area.
+    @discardableResult public func validation(_ cell: Cell, type: ValidationTypes = .none,
+        criteria: ValidationCriteria = .none, minNumber: Double? = nil, maxNumber: Double? = nil,
+        minFormula: String? = nil, maxFormula: String? = nil, value: Double? = nil,
+        list: [String] = [], valueFormula: String? = nil, minDate: Date? = nil, maxDate: Date? = nil,
+        minTime: Time? = nil, maxTime: Time? = nil, title: String? = nil, message: String? = nil,
+        errorTitle: String? = nil, errorMessage: String? = nil, errorType: ValidationErrorTypes? = nil
+        ) -> Worksheet {
+        return self.validation(row: Int(cell.row), col: Int(cell.col), type: type,
+        criteria: criteria, minNumber: minNumber, maxNumber: maxNumber,
+        minFormula: minFormula, maxFormula: maxFormula, value: value,
+        list: list, valueFormula: valueFormula, minDate: minDate, maxDate: maxDate,
+        minTime: minTime, maxTime: maxTime, title: title, message: message,
+        errorTitle: errorTitle, errorMessage: errorMessage, errorType: errorType)
+    }
+
     @discardableResult public func validation(row: Int, col: Int, type: ValidationTypes = .none,
         criteria: ValidationCriteria = .none, minNumber: Double? = nil, maxNumber: Double? = nil,
         minFormula: String? = nil, maxFormula: String? = nil, value: Double? = nil,
@@ -686,6 +701,7 @@ public final class Worksheet {
                 logger.error("error--> validation: \(String(cString: lxw_strerror(error)))") 
             }
 
+            // free allocated resources by makeCString()
             if let _ = option.minimum_formula { option.minimum_formula.deallocate() }
             if let _ = option.maximum_formula { option.maximum_formula.deallocate() }
             if let _ = option.value_formula   { option.value_formula.deallocate() }
@@ -749,6 +765,75 @@ public final class Worksheet {
         // worksheet_freeze_panes(self.sheet, r, c) 
         return self
     }
+
+    ///  Inset a image into a worksheet. The image can be in PNG, JPEG, GIF or BMP format
+    @discardableResult public func image(_ cell: Cell, fileName: String? = nil) -> Worksheet {
+        return self.image(row: Int(cell.row), col: Int(cell.col), fileName: fileName)
+    }
+    @discardableResult public func image(row: Int, col: Int, fileName: String? = nil) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+
+        if let filename = fileName {
+            let fn = filename.makeCString()
+            let error = worksheet_insert_image(self.sheet, r, c, fn)
+            if error.rawValue != 0 { 
+                logger.error("error--> image: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            // free the allocated resources
+            fn.deallocate()
+        }
+
+        return self
+    }
+    @discardableResult public func imageOpt(_ cell: Cell, fileName: String, 
+        xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
+        position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
+        url: String? = nil, tip: String? = nil
+        ) -> Worksheet {
+        return self.imageOpt(row: Int(cell.row), col: Int(cell.col), fileName: fileName, 
+            xOffset: xOffset, yOffset: yOffset, xScale: xScale, yScale: yScale,
+            position: position, description: description, decorative: decorative, 
+            url: url, tip: tip
+        )
+    }
+    @discardableResult public func imageOpt(row: Int, col: Int, fileName: String, 
+        xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
+        position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
+        url: String? = nil, tip: String? = nil
+        ) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+
+        if !fileName.isEmpty {
+            let fn = fileName.makeCString()
+            var opt = lxw_image_options()
+            if let xOffset = xOffset { opt.x_offset = Int32(xOffset) }
+            if let yOffset = yOffset { opt.y_offset = Int32(yOffset) }
+            if let xScale = xScale { opt.x_scale = xScale }
+            if let yScale = yScale { opt.y_scale = yScale }
+            if let position = position { opt.object_position = UInt8(position) }
+            if let description = description { opt.description = description.makeCString() }
+            if let decorative = decorative { opt.decorative = UInt8(decorative) }
+            if let url = url { opt.url = url.makeCString() }
+            if let tip = tip { opt.tip = tip.makeCString() }
+
+            let error = worksheet_insert_image_opt(self.sheet, r, c, fn, &opt)
+            if error.rawValue != 0 { 
+                logger.error("error--> imageOpt: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            // free the allocated resources
+            fn.deallocate()
+            if let _ = opt.description { opt.description.deallocate() }
+            if let _ = opt.url { opt.url.deallocate() }
+            if let _ = opt.tip { opt.tip.deallocate() }
+        }
+
+        return self
+    }
+
 
 }
 
