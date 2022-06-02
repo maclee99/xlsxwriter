@@ -1184,9 +1184,120 @@ final class xlsxwriterTests: XCTestCase {
         // Insert an image with a hyperlink.
         ws1.write("Inset an image with a hyperlink:", "A32")
         ws1.imageOpt("B32", fileName: "logo.png", url: "https://github.com/jmcnamara")
+
+        // var image_buffer: [CUnsignedChar] = [
+        var image_buffer: [UInt8] = [
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+            0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x20,
+            0x08, 0x02, 0x00, 0x00, 0x00, 0xfc, 0x18, 0xed, 0xa3, 0x00, 0x00, 0x00,
+            0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xae, 0xce, 0x1c, 0xe9, 0x00, 0x00,
+            0x00, 0x04, 0x67, 0x41, 0x4d, 0x41, 0x00, 0x00, 0xb1, 0x8f, 0x0b, 0xfc,
+            0x61, 0x05, 0x00, 0x00, 0x00, 0x20, 0x63, 0x48, 0x52, 0x4d, 0x00, 0x00,
+            0x7a, 0x26, 0x00, 0x00, 0x80, 0x84, 0x00, 0x00, 0xfa, 0x00, 0x00, 0x00,
+            0x80, 0xe8, 0x00, 0x00, 0x75, 0x30, 0x00, 0x00, 0xea, 0x60, 0x00, 0x00,
+            0x3a, 0x98, 0x00, 0x00, 0x17, 0x70, 0x9c, 0xba, 0x51, 0x3c, 0x00, 0x00,
+            0x00, 0x46, 0x49, 0x44, 0x41, 0x54, 0x48, 0x4b, 0x63, 0xfc, 0xcf, 0x40,
+            0x63, 0x00, 0xb4, 0x80, 0xa6, 0x88, 0xb6, 0xa6, 0x83, 0x82, 0x87, 0xa6,
+            0xce, 0x1f, 0xb5, 0x80, 0x98, 0xe0, 0x1d, 0x8d, 0x03, 0x82, 0xa1, 0x34,
+            0x1a, 0x44, 0xa3, 0x41, 0x44, 0x30, 0x04, 0x08, 0x2a, 0x18, 0x4d, 0x45,
+            0xa3, 0x41, 0x44, 0x30, 0x04, 0x08, 0x2a, 0x18, 0x4d, 0x45, 0xa3, 0x41,
+            0x44, 0x30, 0x04, 0x08, 0x2a, 0x18, 0x4d, 0x45, 0x03, 0x1f, 0x44, 0x00,
+            0xaa, 0x35, 0xdd, 0x4e, 0xe6, 0xd5, 0xa1, 0x22, 0x00, 0x00, 0x00, 0x00,
+            0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82            
+        ]
+        ws1.imageBuffer("B42", imageBuffer: &image_buffer, count: image_buffer.count)
+        ws1.imageBufferOpt("B52", imageBuffer: &image_buffer, count: image_buffer.count, 
+            xOffset: 34, yOffset: 4, xScale: 2, yScale: 1)
+
     }
 
+    /// MARK: Headers and Footers
+//  * The control characters used in the header/footer strings are:
+//  *
+//  *     Control             Category            Description
+//  *     =======             ========            ===========
+//  *     &L                  Justification       Left
+//  *     &C                                      Center
+//  *     &R                                      Right
+//  *
+//  *     &P                  Information         Page number
+//  *     &N                                      Total number of pages
+//  *     &D                                      Date
+//  *     &T                                      Time
+//  *     &F                                      File name
+//  *     &A                                      Worksheet name
+//  *
+//  *     &fontsize           Font                Font size
+//  *     &"font,style"                           Font name and style
+//  *     &U                                      Single underline
+//  *     &E                                      Double underline
+//  *     &S                                      Strikethrough
+//  *     &X                                      Superscript
+//  *     &Y                                      Subscript
+//  *
+//  *     &[Picture]          Images              Image placeholder
+//  *     &G                                      Same as &[Picture]
+//  *
+//  *     &&                  Miscellaneous       Literal ampersand &
+//  *
+//  * Copyright 2014-2021, John McNamara, jmcnamara@cpan.org    
+    func testHeadersAndFooters() {
+        let wb = Workbook(name: "headers_footers.xlsx")
+        defer { wb.close() }
 
+        // A simple example to start
+        let ws1 = wb.addWorksheet(name: "Simple")
+        ws1.header("&CHere is some centered text.")
+        ws1.footer("&LHere is some left aligned text.")        
+        ws1.column("A:A", width: 50)
+        ws1.write("Select Print Preview to see the header and footer", "A1")
+
+
+        // A simple example of image
+        let ws2 = wb.addWorksheet(name: "Image")
+        ws2.headerOpt("&L&[Picture]", imageLeft: "logo_small.png")        
+        ws2.margins(left: -1, right: -1, top: 1.3, bottom: -1)
+        ws2.column("A:A", width: 50)
+        ws2.write("Select Print Preview to see the header and footer", "A1")
+
+        // Example of some of the header/footer variables.
+        let ws3 = wb.addWorksheet(name: "Variables")
+        ws3.header("&LPage &P of &N &CFilename: &F &RSheetname: &A")
+        ws3.footer("&LCurrent date: &D &RCurrent time: &T")
+        ws3.column("A:A", width: 50)
+        ws3.write("Select Print Preview to see the header and footer", "A1")
+        var breaks: [UInt32] = [20, 0]
+        ws3.pageBreaks(&breaks)
+        ws3.write("Next page", "A21")
+
+        // Example of how to use more than on font.
+        let ws4 = wb.addWorksheet(name: "Mixed fonts")
+        ws4.header("&C&\"Courier New,Bold\"Hello &\"Arial,Italic\"World")
+        ws4.footer("&C&\"Symbol\"e&\"Arial\" = mc&X2")
+        ws4.column("A:A", width: 50)
+        ws4.write("Select Print Preview to see the header and footer", "A1")
+
+        // Example of line wrapping.
+        let ws5 = wb.addWorksheet(name: "Word wrap")
+        ws5.header("&CHeading 1\nHeading 2")
+        ws5.column("A:A", width: 50)
+        ws5.write("Select Print Preview to see the header and footer", "A1")
+
+        // Example of inserting a literal ampersand &.
+        let ws6 = wb.addWorksheet(name: "Ampersand")
+        ws6.header("&CCuriouser && Curiouser - Attorneys at Law")
+        ws6.column("A:A", width: 50)
+        ws6.write("Select Print Preview to see the header and footer", "A1")
+
+    }
+
+// C语言指针类型	         swift语言指针对象类型
+// char *	                UnsafeMutablePointer<Int8>
+// const char *	            UnsafePointer<Int8>
+// unsigned char *	        UnsafeMutablePointer<UInt8>
+// const unsigned char *	UnsafePointer<UInt8>
+// void *	                UnsafeMutableRawPointer
+// const void *	            UnsafeRawPointer
 
 
     static var allTests = [
@@ -1200,6 +1311,7 @@ final class xlsxwriterTests: XCTestCase {
         ("testAutoFilter", testAutoFilter),
         ("testValidation", testValidation),
         ("testImage", testImage),
+        ("testHeadersAndFooters", testHeadersAndFooters),
     ]
 }
 

@@ -317,6 +317,26 @@ public final class Worksheet {
         return self
     }
 
+    /// Set the color of the worksheet tab.
+    @discardableResult public func margins(left: Double = 0.7, right: Double = 0.7, top: Double = 0.75, bottom: Double = 0.75) -> Worksheet {
+        logger.info("margins: \(String(describing: left))|\(String(describing: right))")
+        worksheet_set_margins(self.sheet, left, right, top, bottom) 
+        return self
+    }
+
+    // /// Add horizontal page breaks
+    @discardableResult public func pageBreaks(_ breaks: UnsafeMutablePointer<UInt32>) -> Worksheet {
+        logger.info("pageBreaks: \(String(describing: breaks))")
+        // let buffer = UnsafeMutableBufferPointer<UnsafeMutablePointer<UInt32>>.allocate(capacity: breaks.count)
+        // defer { buffer.deallocate() }
+        let error = worksheet_set_h_pagebreaks(self.sheet, breaks) 
+        if error.rawValue != 0 { 
+            logger.error("error--> pageBreaks: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        return self
+    }
+
     /// Set the default row properties.
     @discardableResult public func setDefault(row_height: Double, hide_unused_rows: Bool = true) -> Worksheet {
         // let hide: UInt8  = UInt8(hide_unused_rows ? LXW_TRUE.rawValue : LXW_FALSE.rawValue)
@@ -766,10 +786,12 @@ public final class Worksheet {
         return self
     }
 
+    /// MARK: Image
     ///  Inset a image into a worksheet. The image can be in PNG, JPEG, GIF or BMP format
     @discardableResult public func image(_ cell: Cell, fileName: String? = nil) -> Worksheet {
         return self.image(row: Int(cell.row), col: Int(cell.col), fileName: fileName)
     }
+
     @discardableResult public func image(row: Int, col: Int, fileName: String? = nil) -> Worksheet {
         let r = UInt32(row)
         let c = UInt16(col)
@@ -787,6 +809,7 @@ public final class Worksheet {
 
         return self
     }
+
     @discardableResult public func imageOpt(_ cell: Cell, fileName: String, 
         xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
         position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
@@ -798,6 +821,7 @@ public final class Worksheet {
             url: url, tip: tip
         )
     }
+
     @discardableResult public func imageOpt(row: Int, col: Int, fileName: String, 
         xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
         position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
@@ -834,8 +858,116 @@ public final class Worksheet {
         return self
     }
 
+    @discardableResult public func imageBuffer(_ cell: Cell, imageBuffer: UnsafePointer<UInt8>, count: Int) -> Worksheet {
+        return self.imageBuffer(row: Int(cell.row), col: Int(cell.col), imageBuffer: imageBuffer, count: count)
+    }
+
+    @discardableResult public func imageBuffer(row: Int, col: Int, imageBuffer: UnsafePointer<UInt8>, count: Int) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+        logger.info("\(imageBuffer)|\(count)")
+
+        let error = worksheet_insert_image_buffer(self.sheet, r, c, imageBuffer, count)
+        if error.rawValue != 0 { 
+            logger.error("error--> imageBuffer: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        return self
+    }
+
+    @discardableResult public func imageBufferOpt(_ cell: Cell, imageBuffer: UnsafePointer<UInt8>, count: Int, 
+        xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
+        position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
+        url: String? = nil, tip: String? = nil ) -> Worksheet {
+        return self.imageBufferOpt(row: Int(cell.row), col: Int(cell.col), imageBuffer: imageBuffer, count: count,
+            xOffset: xOffset, yOffset: yOffset, xScale: xScale, yScale: yScale,
+            position: position, description: description, decorative: decorative, 
+            url: url, tip: tip
+            )
+    }
+
+    @discardableResult public func imageBufferOpt(row: Int, col: Int, imageBuffer: UnsafePointer<UInt8>, count: Int, 
+        xOffset: Int? = nil, yOffset: Int? = nil, xScale: Double? = nil, yScale: Double? = nil,
+        position: Int? = nil, description: String? = nil, decorative: Int? = nil, 
+        url: String? = nil, tip: String? = nil
+        ) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+
+        var opt = lxw_image_options()
+        if let xOffset = xOffset { opt.x_offset = Int32(xOffset) }
+        if let yOffset = yOffset { opt.y_offset = Int32(yOffset) }
+        if let xScale = xScale { opt.x_scale = xScale }
+        if let yScale = yScale { opt.y_scale = yScale }
+        if let position = position { opt.object_position = UInt8(position) }
+        if let description = description { opt.description = description.makeCString() }
+        if let decorative = decorative { opt.decorative = UInt8(decorative) }
+        if let url = url { opt.url = url.makeCString() }
+        if let tip = tip { opt.tip = tip.makeCString() }
+
+        let error = worksheet_insert_image_buffer_opt(self.sheet, r, c, imageBuffer, count, &opt)
+        if error.rawValue != 0 { 
+            logger.error("error--> imageBufferOpt: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        // free the allocated resources
+        if let _ = opt.description { opt.description.deallocate() }
+        if let _ = opt.url { opt.url.deallocate() }
+        if let _ = opt.tip { opt.tip.deallocate() }
+
+        return self
+    }
+
+    /// MARK: Header & Footer
+    /// Set a worksheet tab as selected.
+    @discardableResult public func header(_ header: String) -> Worksheet {
+        let str = header.makeCString()
+        let error = worksheet_set_header(self.sheet, str)
+        if error.rawValue != 0 { 
+            logger.error("error--> header: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        str.deallocate()
+
+        return self
+    }
+    @discardableResult public func headerOpt(_ header: String, margin: Double? = nil,
+        imageLeft: String? = nil, imageCenter: String? = nil, imageRight: String? = nil) -> Worksheet {
+        let str = header.makeCString()
+        var opt = lxw_header_footer_options()
+        if let margin = margin { opt.margin = margin }
+        if let imageLeft = imageLeft { opt.image_left = imageLeft.makeCString() }
+        if let imageCenter = imageCenter { opt.image_center = imageCenter.makeCString() }
+        if let imageRight = imageRight { opt.image_right = imageRight.makeCString() }
+
+        let error = worksheet_set_header_opt(self.sheet, str, &opt)
+        if error.rawValue != 0 { 
+            logger.error("error--> header: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        str.deallocate()
+        if let _ = opt.image_left { opt.image_left.deallocate() }
+        if let _ = opt.image_center { opt.image_center.deallocate() }
+        if let _ = opt.image_right { opt.image_right.deallocate() }
+
+        return self
+    }
+
+    @discardableResult public func footer(_ footer: String) -> Worksheet {
+        let str = footer.makeCString()
+        let error = worksheet_set_footer(self.sheet, str)
+        if error.rawValue != 0 { 
+            logger.error("error--> footer: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        str.deallocate()
+
+        return self
+    }
 
 }
+
+// https://github.com/apple/swift/blob/main/docs/HowSwiftImportsCAPIs.md#fundamental-types
 
 // internal func makeCString(from str: String) -> UnsafeMutablePointer<CChar> {
 //     let count = str.utf8.count + 1
@@ -852,3 +984,9 @@ extension String {
         return result
     }
 }
+
+// func bindArrayToTuple<T, U>(array: Array<T>, tuple: UnsafeMutablePointer<U>) {
+//     tuple.withMemoryRebound(to: T.self, capacity: array.count) {
+//         $0.assign(from: array, count: array.count)
+//     }
+// }
