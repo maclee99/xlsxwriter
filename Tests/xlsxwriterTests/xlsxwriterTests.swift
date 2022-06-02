@@ -1,8 +1,10 @@
 import XCTest
 import Cxlsxwriter
+import Logging
 @testable import xlsxwriter
 
 final class xlsxwriterTests: XCTestCase {
+    let logger = Logger(label: "test")
 
     func testExample() {
         // Create a new workbook
@@ -1291,6 +1293,48 @@ final class xlsxwriterTests: XCTestCase {
 
     }
 
+    func testDefinedName() {
+        let wb = Workbook(name: "defined_name.xlsx")
+        defer { wb.close() }
+
+        // We don't use the returned worksheets in the example and use a generic
+        // loop instead.
+        let _ = wb.addWorksheet()
+        let _ = wb.addWorksheet()
+        logger.info("--count: \(wb.sheetCount)")
+        logger.info("--SheetNames: \(wb.sheetNames)")
+
+        // Define some global/workbook names.
+        wb.defineName(name: "Sales", formula: "=!G1:H10")
+        wb.defineName(name: "Exchange_rate", formula: "=0.96")
+        wb.defineName(name: "Sheet1!Sales", formula: "=Sheet1!$G$1:$H$10")
+
+        // Define a local/worksheet name
+        wb.defineName(name: "Sheet2!Sales", formula: "=Sheet2!$G$1:$H$10")
+
+        // Write some text to the worksheets and one of the defined name in a formula.
+        wb.sheetNames.forEach{ sn in
+            logger.info("write sheet: \(sn)")
+            if let ws = wb[worksheet: sn] {
+                logger.info("get sheet: \(ws)")
+                ws.column("A:A", width: 45)
+                ws.write("This worksheet contains some define names.", "A1")
+                ws.write("See Formulas -> Name Manager above.", "A2")
+                ws.write("Example formula in cell B3 ->.", "A3")
+                ws.write(.formula("=Exchange_rate"), "B3")
+            }
+        }
+
+
+
+
+        // ws1.header("&CHere is some centered text.")
+        // ws1.footer("&LHere is some left aligned text.")        
+        // ws1.column("A:A", width: 50)
+        // ws1.write("Select Print Preview to see the header and footer", "A1")
+    }
+
+
 // C语言指针类型	         swift语言指针对象类型
 // char *	                UnsafeMutablePointer<Int8>
 // const char *	            UnsafePointer<Int8>
@@ -1312,6 +1356,7 @@ final class xlsxwriterTests: XCTestCase {
         ("testValidation", testValidation),
         ("testImage", testImage),
         ("testHeadersAndFooters", testHeadersAndFooters),
+        ("testDefinedName", testDefinedName),
     ]
 }
 

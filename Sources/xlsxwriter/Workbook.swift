@@ -3,6 +3,7 @@
 //  Created by Daniel Müllenborn on 31.12.20.
 //
 
+import Foundation
 import Cxlsxwriter
 import Logging
 
@@ -25,6 +26,35 @@ public final class Workbook {
         logger.info("close...")
         let error = workbook_close(lxw_workbook)
         if error.rawValue != 0 { fatalError(String(cString: lxw_strerror(error))) }
+    }
+
+    public var sheetCount: Int {
+        get {
+            return Int(self.lxw_workbook.pointee.num_worksheets)
+        }
+    }
+    public var sheetNames: [String] {
+        get {
+            var result: [String] = []
+            if self.sheetCount < 1 {
+                return result
+            }
+
+            let first = String(cString: self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.name)
+            result.append(first)
+
+            let root = self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.tree_pointers
+            logger.info("\(root)")
+            var next = root.rbe_right ?? root.rbe_left
+            while next != nil {
+                logger.info("\(String(describing: next))")
+                let name = String(cString: next!.pointee.name)
+                result.append(name)
+                next = next!.pointee.tree_pointers.rbe_right ?? next!.pointee.tree_pointers.rbe_left
+            }
+            // logger.info("\(self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.tree_pointers.rbe_right.pointee)")
+            return result
+        }
     }
 
     /// Add a new worksheet to the Excel workbook.
@@ -79,6 +109,24 @@ public final class Workbook {
         if error.rawValue != 0 { 
             logger.error("error-> validate: \(String(cString: lxw_strerror(error)))") 
         }
+    }
+
+    /// Validate a worksheet or chartsheet name.
+    @discardableResult public func defineName(name: String? = nil, formula: String? = nil) -> Workbook { 
+        logger.info("defineName: \(String(describing: name))|\(String(describing: formula))")
+        var nameStr: UnsafeMutablePointer<CChar>? = nil
+        var formulaStr: UnsafeMutablePointer<CChar>? = nil
+        if let name = name { nameStr = name.makeCString() }
+        if let formula = formula { formulaStr = formula.makeCString() }
+        let error = workbook_define_name(lxw_workbook, nameStr, formulaStr)
+        if error.rawValue != 0 { 
+            logger.error("error-> defineName: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        if let _ = nameStr { nameStr!.deallocate() }
+        if let _ = formulaStr { formulaStr!.deallocate() }
+
+        return self
     }
 
     /// Additionam func by Mac Lee
