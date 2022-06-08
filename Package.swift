@@ -16,6 +16,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         // .package(url: "../Cxlsxwriter", from: "0.0.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-collections.git", .upToNextMajor(from: "1.0.0")), // or `.upToNextMinor
         .package(url: "https://github.com/maclee99/Cxlsxwriter", from: "0.0.1")
     ],
     targets: [
@@ -26,6 +27,7 @@ let package = Package(
             dependencies: [
                 "Cxlsxwriter",
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "Collections", package: "swift-collections")
             ]),
         .testTarget(
             name: "xlsxwriterTests",

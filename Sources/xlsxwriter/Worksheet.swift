@@ -264,9 +264,27 @@ public final class Worksheet {
         return self
     }
 
+    @discardableResult public func columnOpt(_ cols: Cols, width: Double = LXW_DEF_COL_WIDTH, format: Format? = nil,
+        hidden: Bool? = nil, level: Int? = nil, collapsed: Bool? = nil) -> Worksheet {
+        logger.info("columnOpt: \(cols)|\(width)|\(String(describing: format))")
+        let firstCol = UInt16(cols.col)
+        let lastCol = UInt16(cols.col2)
+        let f = format?.lxw_format
+        var opt = lxw_row_col_options()
+        if let hidden = hidden { opt.hidden = hidden ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+        if let level = level { opt.level = UInt8(level) }
+        if let collapsed = collapsed { opt.collapsed = collapsed ? LxwBoolean.true.rawValue : LxwBoolean.false.rawValue }
+
+        let error = worksheet_set_column_opt(self.sheet, firstCol, lastCol, width, f, &opt) 
+        if error.rawValue != 0 { 
+            logger.error("error--> columnOpt: \(String(cString: lxw_strerror(error)))") 
+        }
+        return self
+    }
+
     /// change the default properties of a row. The most common use for this function is to change the height of a row
     /// The height is specified in character units
-    @discardableResult public func row(_ row: UInt32, height: Double, format: Format? = nil) -> Worksheet {
+    @discardableResult public func row(_ row: UInt32, height: Double = LXW_DEF_ROW_HEIGHT, format: Format? = nil) -> Worksheet {
         logger.info("row: \(row)|\(height)|\(String(describing: format))")
         // let rowToSet = UInt32(row)
         let f = format?.lxw_format

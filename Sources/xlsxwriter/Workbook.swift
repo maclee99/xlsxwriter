@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Collections
 import Cxlsxwriter
 import Logging
 
@@ -33,28 +34,46 @@ public final class Workbook {
             return Int(self.lxw_workbook.pointee.num_worksheets)
         }
     }
-    public var sheetNames: [String] {
+    // private var _names2: [String] = []
+    private var _names: OrderedSet<String> = []
+    public var sheetNames: OrderedSet<String> {
         get {
-            var result: [String] = []
+            // var result: [String] = []
             if self.sheetCount < 1 {
-                return result
+                return []
             }
 
-            let first = String(cString: self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.name)
-            result.append(first)
+            _names = []
 
-            let root = self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.tree_pointers
-            logger.info("\(root)")
-            var next = root.rbe_right ?? root.rbe_left
-            while next != nil {
-                logger.info("\(String(describing: next))")
-                let name = String(cString: next!.pointee.name)
-                result.append(name)
-                next = next!.pointee.tree_pointers.rbe_right ?? next!.pointee.tree_pointers.rbe_left
-            }
+            // let first = String(cString: self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.name)
+            // logger.info("root: \(first)")
+            // result.append(first)
+
+            let root2 = self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee
+            logger.info("\(root2)")
+
+            _getName(node: root2)
+            logger.info("\(_names)")
             // logger.info("\(self.lxw_workbook.pointee.worksheet_names.pointee.rbh_root.pointee.tree_pointers.rbe_right.pointee)")
-            return result
+            return _names
         }
+    }
+
+    private func _getName(node: lxw_worksheet_name) {
+        logger.info("_getName: \(node)")
+
+        if let l = node.tree_pointers.rbe_left {
+            _getName(node: l.pointee)
+        }
+
+        let name = String(cString: node.name)
+        logger.info("_getName-->\(name)")
+        _names.append(name)
+
+        if let r = node.tree_pointers.rbe_right {
+            _getName(node: r.pointee)
+        }
+
     }
 
     /// Add a new worksheet to the Excel workbook.
