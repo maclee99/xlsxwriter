@@ -148,67 +148,101 @@ public final class Workbook {
         return self
     }
 
+    @discardableResult public func addVBA(file: String? = nil) -> Workbook { 
+        logger.info("addVBA: \(String(describing: file))")
+        var nameStr: UnsafeMutablePointer<CChar>? = nil
+        if let name = file { 
+            nameStr = name.makeCString()
+            let error = workbook_add_vba_project(lxw_workbook, nameStr)
+            if error.rawValue != 0 { 
+                logger.error("error-> addVBA: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            nameStr!.deallocate()
+        }
+        return self
+    }
+
+
     /// Additionam func by Mac Lee
     @discardableResult public func properties(title: String? = nil, subject: String? = nil, 
       author: String? = nil, manager: String? = nil, company: String? = nil,
       category: String? = nil, keywords: String? = nil, comments: String? = nil,
-      status: String? = nil) -> Workbook {
+      status: String? = nil, hyperlink: String? = nil, created: Date? = nil) -> Workbook {
 
         var properties = lxw_doc_properties()
-        var doSet = false
+        // var doSet = false
         // if title != nil && !title!.isEmpty {
         if let t = title?.makeCString() {
-            defer { t.deallocate() }
             properties.title = t  // title!.makeCString()
-            doSet = true
+            // doSet = true
         }
         // if subject != nil && !subject!.isEmpty {
         if let subject = subject?.makeCString() {
-            defer { subject.deallocate() }
             properties.subject = subject  // makeCString(from: subject!)
-            doSet = true
+            // doSet = true
         }
         // if author != nil && !author!.isEmpty {
         if let author = author?.makeCString() {
-            defer { author.deallocate() }
+            // defer { author.deallocate() }
             properties.author = author  // makeCString(from: author!)
-            doSet = true
+            // doSet = true
         }
         // if manager != nil && !manager!.isEmpty {
         if let manager = manager?.makeCString() {
-            defer { manager.deallocate() }
+            // defer { manager.deallocate() }
             properties.manager = manager  // makeCString(from: manager!)
-            doSet = true
+            // doSet = true
         }
         if let company = company?.makeCString() {
-            defer { company.deallocate() }
+            // defer { company.deallocate() }
             properties.company = company  //makeCString(from: company!)
-            doSet = true
+            // doSet = true
         }
         if let category = category?.makeCString() {
-            defer { category.deallocate() }
+            // defer { category.deallocate() }
             properties.category = category  //makeCString(from: category!)
-            doSet = true
+            // doSet = true
         }
         if let keywords = keywords?.makeCString() {
-            defer { keywords.deallocate() }
+            // defer { keywords.deallocate() }
             properties.keywords = keywords  // makeCString(from: keywords!)
-            doSet = true
+            // doSet = true
         }
         if let comments = comments?.makeCString() {
-            defer { comments.deallocate() }
+            // defer { comments.deallocate() }
             properties.comments = comments  // makeCString(from: comments!)
-            doSet = true
+            // doSet = true
         }
         if let status = status?.makeCString() {
-            defer { status.deallocate() }
+            // defer { status.deallocate() }
             properties.status = status  // makeCString(from: status!)
-            doSet = true
+            // doSet = true
         }
 
-        if doSet {
-            _ = workbook_set_properties(lxw_workbook, &properties)
+        if let hyperlink = hyperlink?.makeCString() {
+            // defer { hyperlink.deallocate() }
+            properties.hyperlink_base = hyperlink
+            // doSet = true
         }
+
+        if let interval = created?.timeIntervalSince1970 {
+            properties.created = Int(interval)
+            // doSet = true
+        }
+
+        _ = workbook_set_properties(lxw_workbook, &properties)
+
+        if let _ = properties.title { properties.title.deallocate() }
+        if let _ = properties.subject { properties.subject.deallocate() }
+        if let _ = properties.author { properties.author.deallocate() }
+        if let _ = properties.manager { properties.manager.deallocate() }
+        if let _ = properties.company { properties.company.deallocate() }
+        if let _ = properties.category { properties.category.deallocate() }
+        if let _ = properties.keywords { properties.keywords.deallocate() }
+        if let _ = properties.comments { properties.comments.deallocate() }
+        if let _ = properties.status { properties.status.deallocate() }
+        if let _ = properties.hyperlink_base { properties.hyperlink_base.deallocate() }
 
         return self
     }

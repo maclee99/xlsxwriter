@@ -355,6 +355,22 @@ public final class Worksheet {
         return self
     }
 
+    /// Set the background image for a worksheet
+    @discardableResult public func background(_ filename: String? = nil) -> Worksheet {
+        logger.info("background: \(String(describing: filename))")
+        if let bg = filename {
+            let bgfile = bg.makeCString()
+            let error = worksheet_set_background(self.sheet, bgfile) 
+            if error.rawValue != 0 { 
+                logger.error("error--> background: \(String(cString: lxw_strerror(error)))") 
+            }
+
+            bgfile.deallocate()
+        }
+
+        return self
+    }
+
     /// Set the default row properties.
     @discardableResult public func setDefault(row_height: Double, hide_unused_rows: Bool = true) -> Worksheet {
         // let hide: UInt8  = UInt8(hide_unused_rows ? LXW_TRUE.rawValue : LXW_FALSE.rawValue)
@@ -979,6 +995,60 @@ public final class Worksheet {
         }
 
         str.deallocate()
+
+        return self
+    }
+
+    @discardableResult public func button(_ cell: Cell, caption: String? = nil, macro: String? = nil,
+        description: String? = nil, width: Int? = nil, height: Int? = nil, xScale: Double? = nil,
+        yScale: Double? = nil, xOffset: Int? = nil, yOffset: Int? = nil) -> Worksheet {
+        return self.button(row: Int(cell.row), col: Int(cell.col), caption: caption, macro: macro,
+        description: description, width: width, height: height, xScale: xScale,
+        yScale: yScale, xOffset: xOffset, yOffset: yOffset)
+    }
+    @discardableResult public func button(row: Int, col: Int, caption: String? = nil, macro: String? = nil,
+        description: String? = nil, width: Int? = nil, height: Int? = nil, xScale: Double? = nil,
+        yScale: Double? = nil, xOffset: Int? = nil, yOffset: Int? = nil) -> Worksheet {
+        let r = UInt32(row)
+        let c = UInt16(col)
+
+        var opt = lxw_button_options()
+        if let caption = caption?.makeCString() {
+            opt.caption = caption
+        }
+        if let macro = macro?.makeCString() {
+            opt.macro = macro
+        }
+        if let description = description?.makeCString() {
+            opt.description = description
+        }
+        if let width = width {
+            opt.width = UInt16(width)
+        }
+        if let height = height {
+            opt.height = UInt16(height)
+        }
+        if let xScale = xScale {
+            opt.x_scale = xScale
+        }
+        if let yScale = yScale {
+            opt.y_scale = yScale
+        }
+        if let xOffset = xOffset {
+            opt.x_offset = Int32(xOffset)
+        }
+        if let yOffset = yOffset {
+            opt.y_offset = Int32(yOffset)
+        }
+
+        let error = worksheet_insert_button(self.sheet, r, c, &opt)
+        if error.rawValue != 0 { 
+            logger.error("error--> button: \(String(cString: lxw_strerror(error)))") 
+        }
+
+        if let _ = opt.caption { opt.caption.deallocate() }
+        if let _ = opt.macro { opt.macro.deallocate() }
+        if let _ = opt.description { opt.description.deallocate() }
 
         return self
     }

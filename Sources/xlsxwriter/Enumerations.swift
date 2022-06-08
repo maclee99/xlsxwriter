@@ -216,3 +216,20 @@ public enum TotalFunction: UInt8, ExpressibleByIntegerLiteral {
         }
     }
 }
+
+
+/**
+ * Diagonal border types.
+ *
+ */
+public enum DiagonalTypes: UInt8 {
+
+    /** Cell diagonal border from bottom left to top right. */
+    case up = 1
+
+    /** Cell diagonal border from top left to bottom right. */
+    case down
+
+    /** Cell diagonal border in both directions. */
+    case upDown
+};

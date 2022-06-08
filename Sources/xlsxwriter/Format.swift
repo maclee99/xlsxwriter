@@ -173,4 +173,22 @@ public struct Format {
         format_set_font_script(lxw_format, script.rawValue)
         return self
     }
+
+    /// Set the diagonal type.
+    @discardableResult public func diagType(_ diag: DiagonalTypes) -> Format {
+        format_set_diag_type(lxw_format, diag.rawValue)
+        return self
+    }
+    /// Set the diagonal border.
+    @discardableResult public func diagBorder(_ border: Border) -> Format {
+        format_set_diag_border(lxw_format, border.rawValue)
+        return self
+    }
+    /// Set the diagonal border.
+    @discardableResult public func diagColor(_ color: Color) -> Format {
+        format_set_diag_color(lxw_format, color.rawValue)
+        return self
+    }
+
+
 }
