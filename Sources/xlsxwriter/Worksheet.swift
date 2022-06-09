@@ -123,7 +123,8 @@ public final class Worksheet {
             case .number(let number): error = worksheet_write_number(self.sheet, r, c, number, f)
             case .int(let number): error = worksheet_write_number(self.sheet, r, c, Double(number), f)
             case .string(let string): error = string.withCString { s in worksheet_write_string(self.sheet, r, c, s, f) }
-            case .url(let url): error = url.path.withCString { s in worksheet_write_url(self.sheet, r, c, s, f) }
+            // case .url(let url): error = url.path.withCString { s in worksheet_write_url(self.sheet, r, c, s, f) }
+            case .url(let url): error = url.absoluteString.withCString { s in worksheet_write_url(self.sheet, r, c, s, f) }
             case .blank: error = worksheet_write_blank(self.sheet, r, c, f)
             case .comment(let comment): error = comment.withCString { s in worksheet_write_comment(self.sheet, r, c, s) }
             case .boolean(let boolean): error = worksheet_write_boolean(self.sheet, r, c, Int32(boolean ? 1 : 0), f)

@@ -106,10 +106,15 @@ final class xlsxwriterTests: XCTestCase {
         let d2 = wb.addFormat().diagType(.down)
         let d3 = wb.addFormat().diagType(.upDown)
         let d4 = wb.addFormat().diagType(.upDown).diagBorder(.hair).diagColor(.red)
+        let urlFormat = wb.defaultUrlFormat()
         ws1.write("Text", "B3", format: d1)
         ws1.write("Text", "B6", format: d2)
         ws1.write("Text", "B9", format: d3)
         ws1.write("Text", "B12", format: d4)
+        ws1.write(.url(URL(string: "http://libxlsxwriter.github.io")!), "B14")
+        ws1.write("Read the documentation", "B14", format: urlFormat)
+        ws1.write("Это фраза на русском!", "B16")
+
 
         // let ws2 = wb.addWorksheet(name: "Button")
         // ws2.column("A:A", width: 30)

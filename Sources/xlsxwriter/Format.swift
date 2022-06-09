@@ -190,5 +190,4 @@ public struct Format {
         return self
     }
 
-
 }

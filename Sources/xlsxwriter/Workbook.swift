@@ -104,6 +104,12 @@ public final class Workbook {
         Format(workbook_add_format(lxw_workbook)) 
     }
 
+    // The format is the hyperlink style defined by Excel for the default theme.
+    // This format is only ever required when overwriting a string URL with data of a different type.
+    public func defaultUrlFormat() -> Format { 
+        Format(workbook_get_default_url_format(lxw_workbook)) 
+    }
+
     /// Create a new chart to be added to a worksheet
     public func addChart(type: Chart_type) -> Chart { 
         Chart(workbook_add_chart(lxw_workbook, type.rawValue)) 
